@@ -28,6 +28,7 @@ export type Database = {
           avatar_key?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       groups: {
         Row: {
@@ -51,6 +52,7 @@ export type Database = {
           timezone?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       group_members: {
         Row: {
@@ -83,6 +85,7 @@ export type Database = {
           joined_at?: string;
           archived_at?: string | null;
         };
+        Relationships: [];
       };
       daily_results: {
         Row: {
@@ -130,6 +133,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       group_invitations: {
         Row: {
@@ -165,7 +169,11 @@ export type Database = {
           revoked_at?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
+    };
+    Views: {
+      [_ in never]: never;
     };
     Functions: {
       is_active_group_member: {
@@ -188,6 +196,12 @@ export type Database = {
         Args: { p_group_id: string; p_target_user_id: string };
         Returns: void;
       };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 };

@@ -4,7 +4,12 @@ import { BottomNav } from './components/layout/BottomNav';
 import { Card } from './components/common/Card';
 import { Button } from './components/common/Button';
 import { PokerChip } from './components/common/PokerChip';
-import { NavigationTab, ChipColor, ChipCounts } from './types';
+import { AuthModal } from './components/auth/AuthModal';
+import { JoinOrCreateGroupModal } from './components/groups/JoinOrCreateGroupModal';
+import { InviteModal } from './components/groups/InviteModal';
+import { MemberList } from './components/groups/MemberList';
+import { useAuth } from './context/AuthContext';
+import { NavigationTab, ChipColor, ChipCounts, GroupMember } from './types';
 import { formatChips, calculateDetailedTotal, calculateVariation } from './utils/chipCalculations';
 import {
   TrendingUp,
@@ -16,7 +21,8 @@ import {
   RotateCcw,
   BookOpen,
   ArrowRight,
-  Check
+  Check,
+  UserPlus
 } from 'lucide-react';
 
 const INITIAL_CHIPS: ChipCounts = {
@@ -27,12 +33,89 @@ const INITIAL_CHIPS: ChipCounts = {
   white: 2
 };
 
+const DEFAULT_MEMBERS: (GroupMember & { chips: number })[] = [
+  {
+    groupId: 'demo-group',
+    userId: 'user-1',
+    nickname: 'Thomas',
+    role: 'owner',
+    status: 'active',
+    joinedAt: '2026-09-01T10:00:00Z',
+    chips: 845
+  },
+  {
+    groupId: 'demo-group',
+    userId: 'user-2',
+    nickname: 'Alexandre',
+    role: 'member',
+    status: 'active',
+    joinedAt: '2026-09-02T10:00:00Z',
+    chips: 1120
+  },
+  {
+    groupId: 'demo-group',
+    userId: 'user-3',
+    nickname: 'Sarah',
+    role: 'member',
+    status: 'active',
+    joinedAt: '2026-09-03T10:00:00Z',
+    chips: 790
+  },
+  {
+    groupId: 'demo-group',
+    userId: 'user-4',
+    nickname: 'Julien',
+    role: 'member',
+    status: 'active',
+    joinedAt: '2026-09-05T10:00:00Z',
+    chips: 610
+  },
+  {
+    groupId: 'demo-group',
+    userId: 'user-5',
+    nickname: 'Maxime',
+    role: 'member',
+    status: 'active',
+    joinedAt: '2026-09-08T10:00:00Z',
+    chips: 540
+  },
+  {
+    groupId: 'demo-group',
+    userId: 'user-6',
+    nickname: 'Claire',
+    role: 'member',
+    status: 'active',
+    joinedAt: '2026-09-10T10:00:00Z',
+    chips: 480
+  },
+  {
+    groupId: 'demo-group',
+    userId: 'user-7',
+    nickname: 'Nicolas',
+    role: 'member',
+    status: 'archived',
+    joinedAt: '2026-09-01T10:00:00Z',
+    archivedAt: '2026-10-15T18:00:00Z',
+    chips: 350
+  }
+];
+
 export function App() {
+  const { user, profile, currentGroup, membership, signOut } = useAuth();
+
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
   const [entryMode, setEntryMode] = useState<'detailed' | 'total'>('detailed');
   const [chipCounts, setChipCounts] = useState<ChipCounts>(INITIAL_CHIPS);
   const [directTotal, setDirectTotal] = useState<number>(585);
   const [isSavedNotification, setIsSavedNotification] = useState(false);
+
+  // Modales
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  // Membres
+  const [members, setMembers] = useState(DEFAULT_MEMBERS);
 
   const calculatedTotal = entryMode === 'detailed' ? calculateDetailedTotal(chipCounts) : directTotal;
   const previousTotal = 460;
@@ -54,13 +137,24 @@ export function App() {
     setTimeout(() => setIsSavedNotification(false), 3000);
   };
 
+  const isOwner = membership?.role === 'owner' || (!membership && true); // Permis en mode démo
+  const userDisplayName = profile?.displayName || membership?.nickname || (user ? user.email?.split('@')[0] : 'Thomas');
+  const groupDisplayName = currentGroup?.name || 'Table des Collègues';
+  const effectiveUserId = user?.id || 'user-1';
+  const effectiveGroupId = currentGroup?.id || 'demo-group';
+
   return (
     <div className="min-h-screen flex flex-col bg-[#08140e] text-[#ecefed] pb-safe font-sans selection:bg-[#c5a059] selection:text-[#08140e]">
       {/* En-tête de table */}
       <Header
-        groupName="Table des Collègues"
-        userNickname="Thomas"
+        groupName={groupDisplayName}
+        userNickname={userDisplayName}
+        isAuthenticated={Boolean(user)}
+        isOwner={isOwner}
         onProfileClick={() => setActiveTab('players')}
+        onLoginClick={() => setIsAuthModalOpen(true)}
+        onLogoutClick={signOut}
+        onInviteClick={() => setIsInviteModalOpen(true)}
       />
 
       {/* Corps principal */}
@@ -77,9 +171,11 @@ export function App() {
                 </h1>
                 <p className="text-xs text-slate-400 mt-0.5">Session en cours • 7 joueurs au tapis</p>
               </div>
-              <span className="text-[11px] font-mono font-medium text-[#dfba73] bg-[#0e2219] px-2.5 py-1 rounded border border-[#c5a059]/30">
-                28 OCT. 2026
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono font-medium text-[#dfba73] bg-[#0e2219] px-2.5 py-1 rounded border border-[#c5a059]/30">
+                  28 OCT. 2026
+                </span>
+              </div>
             </div>
 
             {/* Bilan personnel - Look Feutre Haut de Gamme */}
@@ -430,56 +526,46 @@ export function App() {
         )}
 
         {/* =========================================================================
-            ONGLET 3 : JOUEURS
+            ONGLET 3 : JOUEURS (MEMBRES ET GESTION)
            ========================================================================= */}
         {activeTab === 'players' && (
           <section className="space-y-6" aria-labelledby="players-heading">
-            <div className="border-b border-[#1c3527] pb-3">
-              <h1 id="players-heading" className="font-serif font-black text-xl sm:text-2xl text-[#f5ebd7] tracking-wider uppercase">
-                Membres de la Table
-              </h1>
-              <p className="text-xs text-slate-400 mt-0.5">7 joueurs enregistrés</p>
+            <div className="flex items-baseline justify-between border-b border-[#1c3527] pb-3">
+              <div>
+                <h1 id="players-heading" className="font-serif font-black text-xl sm:text-2xl text-[#f5ebd7] tracking-wider uppercase">
+                  Membres de la Table
+                </h1>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Gestion des profils et invitations
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsGroupModalOpen(true)}
+                >
+                  <UserPlus className="w-3.5 h-3.5 mr-1" />
+                  Changer / Créer Table
+                </Button>
+              </div>
             </div>
 
-            <Card className="bg-[#0b1a13] border-[#183525] divide-y divide-[#183525]">
-              {[
-                { name: 'Thomas', role: 'Propriétaire', status: 'Actif', chips: 845, isMe: true },
-                { name: 'Alexandre', role: 'Membre', status: 'Actif', chips: 1120 },
-                { name: 'Sarah', role: 'Membre', status: 'Actif', chips: 790 },
-                { name: 'Julien', role: 'Membre', status: 'Actif', chips: 610 },
-                { name: 'Maxime', role: 'Membre', status: 'Actif', chips: 540 },
-                { name: 'Claire', role: 'Membre', status: 'Actif', chips: 480 },
-                { name: 'Nicolas', role: 'Membre', status: 'Archivé', chips: 350, archived: true }
-              ].map((member, idx) => (
-                <div key={idx} className="py-3.5 flex items-center justify-between first:pt-0 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[#08140e] border border-[#1b3d2c] flex items-center justify-center font-serif font-bold text-xs text-[#dfba73]">
-                      {member.name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-100">{member.name}</span>
-                        {member.isMe && (
-                          <span className="text-[9px] font-bold text-[#dfba73] bg-[#c5a059]/15 px-1.5 py-0.2 rounded border border-[#c5a059]/30">
-                            Moi
-                          </span>
-                        )}
-                        {member.archived && (
-                          <span className="text-[9px] font-bold text-slate-400 bg-slate-800/80 px-1.5 py-0.2 rounded border border-slate-700">
-                            Archivé
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs text-slate-400">{member.role}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-serif font-bold text-base text-white">{formatChips(member.chips)}</span>
-                    <p className="text-[10px] text-slate-400 font-mono">jetons</p>
-                  </div>
-                </div>
-              ))}
-            </Card>
+            <MemberList
+              members={members}
+              currentUserId={effectiveUserId}
+              isOwner={isOwner}
+              groupId={effectiveGroupId}
+              onInviteClick={() => setIsInviteModalOpen(true)}
+              onMemberArchived={() => {
+                setMembers((prev) =>
+                  prev.map((m) =>
+                    m.userId === 'user-4' ? { ...m, status: 'archived' } : m
+                  )
+                );
+              }}
+            />
           </section>
         )}
 
@@ -537,6 +623,16 @@ export function App() {
 
       {/* Barre de navigation basse */}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Modales d'authentification et gestion */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      <JoinOrCreateGroupModal isOpen={isGroupModalOpen} onClose={() => setIsGroupModalOpen(false)} />
+      <InviteModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        groupId={effectiveGroupId}
+        userId={effectiveUserId}
+      />
     </div>
   );
 }

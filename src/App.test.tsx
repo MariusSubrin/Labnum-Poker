@@ -2,10 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from './App';
+import { AuthProvider } from './context/AuthContext';
 
 describe('App - Shell responsive et navigation', () => {
   it('affiche le tableau de bord par défaut avec le titre et les cartes', () => {
-    render(<App />);
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    );
     expect(screen.getByRole('heading', { name: /état de la table/i })).toBeInTheDocument();
     expect(screen.getByText(/mon tapis actuel/i)).toBeInTheDocument();
     expect(screen.getByText(/classement de la table/i)).toBeInTheDocument();
@@ -13,7 +18,11 @@ describe('App - Shell responsive et navigation', () => {
 
   it('navigue vers l’onglet Compter lors du clic sur le bouton de navigation', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    );
 
     const countTab = screen.getByRole('button', { name: /compter/i });
     await user.click(countTab);
@@ -24,7 +33,11 @@ describe('App - Shell responsive et navigation', () => {
 
   it('navigue vers l’onglet Mains et affiche les 10 combinaisons officielles', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    );
 
     const handsTab = screen.getByRole('button', { name: /mains/i });
     await user.click(handsTab);
@@ -36,7 +49,11 @@ describe('App - Shell responsive et navigation', () => {
 
   it('navigue vers l’onglet Joueurs et affiche la liste des membres', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    );
 
     const playersTab = screen.getByRole('button', { name: /joueurs/i });
     await user.click(playersTab);
