@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="feltGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1f5b43"/>
+      <stop offset="70%" stop-color="#0b2419"/>
+      <stop offset="100%" stop-color="#05140d"/>
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6d97c"/>
+      <stop offset="50%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#8f731a"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer Rim -->
+  <circle cx="50" cy="50" r="46" fill="url(#feltGrad)" stroke="url(#goldGrad)" stroke-width="4"/>
+  <!-- Dashes around the chip -->
+  <circle cx="50" cy="50" r="41" fill="none" stroke="#d4af37" stroke-width="3" stroke-dasharray="6, 8" stroke-linecap="round"/>
+  <!-- Inner Ring -->
+  <circle cx="50" cy="50" r="28" fill="#0c261b" stroke="#e5c158" stroke-width="2"/>
+  <!-- Spade / Ace center icon -->
+  <path d="M50 33 C45 42 38 46 38 52 C38 57 42 60 47 58 C47.5 61 46 65 44 67 L56 67 C54 65 52.5 61 53 58 C58 60 62 57 62 52 C62 46 55 42 50 33 Z" fill="url(#goldGrad)" />
+</svg>
