@@ -3,35 +3,24 @@ import { Header } from './components/layout/Header';
 import { BottomNav } from './components/layout/BottomNav';
 import { Card } from './components/common/Card';
 import { Button } from './components/common/Button';
-import { PokerChip } from './components/common/PokerChip';
 import { AuthModal } from './components/auth/AuthModal';
 import { JoinOrCreateGroupModal } from './components/groups/JoinOrCreateGroupModal';
 import { InviteModal } from './components/groups/InviteModal';
 import { MemberList } from './components/groups/MemberList';
+import { ChipEntryForm } from './components/results/ChipEntryForm';
 import { useAuth } from './context/AuthContext';
-import { NavigationTab, ChipColor, ChipCounts, GroupMember } from './types';
-import { formatChips, calculateDetailedTotal, calculateVariation } from './utils/chipCalculations';
+import { NavigationTab, GroupMember } from './types';
+import { formatChips } from './utils/chipCalculations';
 import {
   TrendingUp,
   Award,
   Calendar,
   AlertCircle,
   Plus,
-  Minus,
-  RotateCcw,
   BookOpen,
   ArrowRight,
-  Check,
   UserPlus
 } from 'lucide-react';
-
-const INITIAL_CHIPS: ChipCounts = {
-  blue: 15,
-  red: 10,
-  black: 12,
-  green: 4,
-  white: 2
-};
 
 const DEFAULT_MEMBERS: (GroupMember & { chips: number })[] = [
   {
@@ -104,10 +93,6 @@ export function App() {
   const { user, profile, currentGroup, membership, signOut } = useAuth();
 
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
-  const [entryMode, setEntryMode] = useState<'detailed' | 'total'>('detailed');
-  const [chipCounts, setChipCounts] = useState<ChipCounts>(INITIAL_CHIPS);
-  const [directTotal, setDirectTotal] = useState<number>(585);
-  const [isSavedNotification, setIsSavedNotification] = useState(false);
 
   // Modales
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -116,26 +101,6 @@ export function App() {
 
   // Membres
   const [members, setMembers] = useState(DEFAULT_MEMBERS);
-
-  const calculatedTotal = entryMode === 'detailed' ? calculateDetailedTotal(chipCounts) : directTotal;
-  const previousTotal = 460;
-  const variation = calculateVariation(calculatedTotal, previousTotal);
-
-  const handleChipChange = (color: ChipColor, delta: number) => {
-    setChipCounts((prev) => ({
-      ...prev,
-      [color]: Math.max(0, prev[color] + delta)
-    }));
-  };
-
-  const handleResetChips = () => {
-    setChipCounts({ blue: 0, red: 0, black: 0, green: 0, white: 0 });
-  };
-
-  const handleSaveResult = () => {
-    setIsSavedNotification(true);
-    setTimeout(() => setIsSavedNotification(false), 3000);
-  };
 
   const isOwner = membership?.role === 'owner' || (!membership && true); // Permis en mode démo
   const userDisplayName = profile?.displayName || membership?.nickname || (user ? user.email?.split('@')[0] : 'Thomas');
@@ -327,201 +292,15 @@ export function App() {
         )}
 
         {/* =========================================================================
-            ONGLET 2 : COMPTER (SAISIE DES JETONS)
+            ONGLET 2 : COMPTER (SAISIE DÉDIÉE DES JETONS)
            ========================================================================= */}
         {activeTab === 'count' && (
           <section className="space-y-6" aria-labelledby="count-heading">
-            <div className="flex items-baseline justify-between border-b border-[#1c3527] pb-3">
-              <div>
-                <h1 id="count-heading" className="font-serif font-black text-xl sm:text-2xl text-[#f5ebd7] tracking-wider uppercase">
-                  Saisie du Tapis
-                </h1>
-                <p className="text-xs text-slate-400 mt-0.5">Relevé quotidien — Europe/Paris</p>
-              </div>
-
-              {/* Sélecteur de mode */}
-              <div className="inline-flex rounded-xl bg-[#08140e] p-1 border border-[#1b3d2c]">
-                <button
-                  onClick={() => setEntryMode('detailed')}
-                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors ${
-                    entryMode === 'detailed'
-                      ? 'bg-[#1b3d2c] text-[#dfba73]'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Détaillé
-                </button>
-                <button
-                  onClick={() => setEntryMode('total')}
-                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors ${
-                    entryMode === 'total'
-                      ? 'bg-[#1b3d2c] text-[#dfba73]'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Total direct
-                </button>
-              </div>
-            </div>
-
-            {/* Notification de sauvegarde */}
-            {isSavedNotification && (
-              <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-700/80 flex items-center gap-2 text-emerald-300 text-xs font-semibold animate-in fade-in">
-                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Relevé du jour enregistré avec succès. Total validé par le serveur.</span>
-              </div>
-            )}
-
-            {/* Affichage du total en direct */}
-            <Card variant="brass" padding="md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] font-serif font-bold uppercase tracking-widest text-[#dfba73]">
-                    Total calculé
-                  </span>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <span className="font-serif text-4xl sm:text-5xl font-black text-white">
-                      {formatChips(calculatedTotal)}
-                    </span>
-                    <span className="text-xs text-slate-400 uppercase tracking-widest">jetons</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1 font-mono">
-                    Variation :{' '}
-                    <span className={`font-bold ${
-                      (variation ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
-                    }`}>
-                      {(variation ?? 0) > 0 ? `+${variation}` : variation}
-                    </span>{' '}
-                    (précédent : {previousTotal})
-                  </p>
-                </div>
-
-                {entryMode === 'detailed' && (
-                  <button
-                    onClick={handleResetChips}
-                    title="Remettre à zéro"
-                    className="p-2.5 rounded-xl bg-[#08140e] border border-[#1b3d2c] text-slate-400 hover:text-[#dfba73] transition-colors"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </Card>
-
-            {/* Mode Détaillé : Sélecteurs tactiles de jetons */}
-            {entryMode === 'detailed' ? (
-              <div className="space-y-3">
-                <p className="text-xs text-slate-400 font-medium">
-                  Ajustez les jetons avec les boutons ou tapez directement sur le jeton pour l’incrémenter :
-                </p>
-
-                {(['blue', 'red', 'black', 'green', 'white'] as ChipColor[]).map((color) => {
-                  const count = chipCounts[color];
-                  const labels: Record<ChipColor, string> = {
-                    blue: 'Bleu (1 pt)',
-                    red: 'Rouge (5 pts)',
-                    black: 'Noir (10 pts)',
-                    green: 'Vert (25 pts)',
-                    white: 'Blanc (100 pts)'
-                  };
-
-                  return (
-                    <div
-                      key={color}
-                      className="flex items-center justify-between p-3 rounded-2xl bg-[#0b1a13] border border-[#183525]"
-                    >
-                      <div className="flex items-center gap-3">
-                        <PokerChip
-                          color={color}
-                          size="md"
-                          interactive
-                          onClick={() => handleChipChange(color, 1)}
-                        />
-                        <div>
-                          <p className="text-sm font-bold text-slate-200">{labels[color]}</p>
-                          <p className="text-xs text-slate-400 font-mono">
-                            Sous-total : {formatChips(count * (color === 'blue' ? 1 : color === 'red' ? 5 : color === 'black' ? 10 : color === 'green' ? 25 : 100))}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Contrôles tactiles +/- */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleChipChange(color, -1)}
-                          disabled={count <= 0}
-                          aria-label={`Diminuer jeton ${color}`}
-                          className="w-10 h-10 rounded-xl bg-[#08140e] border border-[#1b3d2c] text-slate-300 hover:text-white flex items-center justify-center active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-transform"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-
-                        <input
-                          type="number"
-                          min={0}
-                          value={count}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value, 10);
-                            setChipCounts((prev) => ({
-                              ...prev,
-                              [color]: isNaN(val) ? 0 : Math.max(0, val)
-                            }));
-                          }}
-                          className="w-16 h-10 rounded-xl bg-[#08140e] border border-[#1b3d2c] text-center font-serif font-bold text-base text-white focus:outline-none focus:border-[#c5a059]"
-                        />
-
-                        <button
-                          onClick={() => handleChipChange(color, 1)}
-                          aria-label={`Augmenter jeton ${color}`}
-                          className="w-10 h-10 rounded-xl bg-[#132c20] border border-[#1f4734] text-[#dfba73] hover:brightness-110 flex items-center justify-center active:scale-95 transition-transform"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              /* Mode Total Direct */
-              <Card className="bg-[#0b1a13] border-[#183525] space-y-4">
-                <div>
-                  <label htmlFor="direct-total" className="block text-xs font-semibold text-slate-300 mb-1">
-                    Valeur totale brute de vos jetons
-                  </label>
-                  <input
-                    id="direct-total"
-                    type="number"
-                    min={0}
-                    value={directTotal}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      setDirectTotal(isNaN(val) ? 0 : Math.max(0, val));
-                    }}
-                    placeholder="Ex: 585"
-                    className="w-full px-4 py-3 rounded-xl bg-[#08140e] border border-[#1b3d2c] font-serif font-bold text-xl text-white focus:outline-none focus:border-[#c5a059]"
-                  />
-                </div>
-                <div className="p-3 rounded-xl bg-[#08140e] border border-amber-900/40 text-amber-300/90 text-xs">
-                  <p className="font-semibold flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4" /> Mode total direct
-                  </p>
-                  <p className="text-slate-400 mt-1">
-                    Dans ce mode, aucune répartition par couleur n'est enregistrée. L'historique indiquera que le détail des jetons n'est pas disponible.
-                  </p>
-                </div>
-              </Card>
-            )}
-
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              onClick={handleSaveResult}
-              className="mt-6"
-            >
-              Valider le relevé du jour
-            </Button>
+            <ChipEntryForm
+              groupId={effectiveGroupId}
+              userId={effectiveUserId}
+              timezone={currentGroup?.timezone || 'Europe/Paris'}
+            />
           </section>
         )}
 
